@@ -1,0 +1,1 @@
+{"name":"@baki/fitness","private":true,"workspaces":["apps/*","packages/*"],"scripts":{"build":"turbo run build","dev":"turbo run dev","lint":"turbo run lint"},"devDependencies":{"turbo":"^2.1.1"}}
