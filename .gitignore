@@ -1,0 +1,12 @@
+node_modules
+.dist
+build
+dist
+.env
+.expo
+.expo-shared
+coverage
+.tmp
+.DS_Store
+.vscode
+.prisma

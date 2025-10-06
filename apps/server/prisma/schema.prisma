@@ -1,0 +1,127 @@
+// Prisma schema for BakiFitness
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  passwordHash   String
+  name           String?
+  role           String           @default("user")
+  age            Int?
+  gender         String? // male, female, other
+  heightCm       Int?
+  weightKg       Decimal?         @db.Decimal(5,2)
+  activityLevel  String?
+  goal           String?
+  allergies      String[]
+  dietType       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  mealPlans      MealPlan[]
+  progress       Progress[]
+  favorites      FavoriteWorkout[]
+  subscription   Subscription?
+  dailyTracking  DailyTracking[]
+}
+
+model MealPlan {
+  id            String   @id @default(cuid())
+  userId        String
+  planType      String   // daily | weekly
+  startDate     DateTime
+  endDate       DateTime
+  totalCalories Int?
+  macros        Json     // { protein, carbs, fat }
+  meals         Json     // array of meals with recipes, ingredients
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Workout {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  durationMin   Int
+  equipment     String?
+  videoUrl      String
+  muscleGroups  String[]
+  difficulty    String?
+  tags          String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  favorites     FavoriteWorkout[]
+}
+
+model FavoriteWorkout {
+  userId    String
+  workoutId String
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workoutId])
+}
+
+model Progress {
+  id               String    @id @default(cuid())
+  userId           String
+  date             DateTime
+  weightKg         Decimal?  @db.Decimal(5,2)
+  bodyFatPercent   Decimal?  @db.Decimal(5,2)
+  measurements     Json?
+  photos           String[]
+  summary          String?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model DailyTracking {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime
+  waterMl        Int      @default(0)
+  steps          Int      @default(0)
+  caloriesIn     Int      @default(0)
+  caloriesOut    Int      @default(0)
+  macros         Json?
+  mealsLogged    Json?
+  workoutsLogged Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  planSlug             String   // free | pro_monthly | pro_yearly
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               String   // inactive | active | trialing | canceled | past_due
+  startAt              DateTime?
+  currentPeriodEnd     DateTime?
+  trialEndAt           DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
