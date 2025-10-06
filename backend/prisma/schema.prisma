@@ -1,0 +1,447 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  gender            Gender
+  height            Float    // in cm
+  weight            Float    // in kg
+  activityLevel     ActivityLevel
+  goals             Goal[]
+  allergies         String[]
+  dietType          DietType
+  isEmailVerified   Boolean  @default(false)
+  emailVerificationToken String?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Profile completion
+  onboardingCompleted Boolean @default(false)
+  profilePicture     String?
+  phoneNumber        String?
+  timezone           String   @default("UTC")
+
+  // Subscription
+  subscription      Subscription?
+  subscriptionId    String?   @unique
+
+  // Relations
+  mealPlans         MealPlan[]
+  progressEntries   ProgressEntry[]
+  workoutFavorites  WorkoutFavorite[]
+  dailyTracking     DailyTracking[]
+  progressPhotos    ProgressPhoto[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id                String            @id @default(cuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripeCustomerId  String            @unique
+  stripeSubscriptionId String?        @unique
+  planSlug          String            // free, pro_monthly, pro_yearly
+  status            SubscriptionStatus
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean          @default(false)
+  trialStart        DateTime?
+  trialEnd          DateTime?
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@map("subscriptions")
+}
+
+model MealPlan {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  totalCalories     Int
+  totalProtein      Float
+  totalCarbs        Float
+  totalFat          Float
+  totalFiber        Float?
+  totalSugar        Float?
+  
+  // AI Generation metadata
+  aiGenerated       Boolean  @default(false)
+  generationPrompt  String?
+  preferences       Json?    // User preferences used for generation
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  meals             Meal[]
+
+  @@map("meal_plans")
+}
+
+model Meal {
+  id                String   @id @default(cuid())
+  mealPlanId        String
+  mealPlan          MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  
+  name              String
+  mealType          MealType
+  calories          Int
+  protein           Float
+  carbs             Float
+  fat               Float
+  fiber             Float?
+  sugar             Float?
+  sodium            Float?
+  
+  // Recipe details
+  ingredients       Json     // Array of ingredients with amounts
+  instructions      String[]
+  prepTime          Int?     // in minutes
+  cookTime          Int?     // in minutes
+  servings          Int      @default(1)
+  difficulty        Difficulty?
+  
+  // Media
+  imageUrl          String?
+  videoUrl          String?
+  
+  // AI Generation
+  aiGenerated       Boolean  @default(false)
+  canSwap           Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("meals")
+}
+
+model Workout {
+  id                String   @id @default(cuid())
+  
+  title             String
+  description       String?
+  duration          Int      // in minutes
+  difficulty        Difficulty
+  equipment         String[] // Required equipment
+  muscleGroups      MuscleGroup[]
+  tags              String[]
+  
+  // Media
+  videoUrl          String
+  thumbnailUrl      String?
+  previewUrl        String?  // Short preview video
+  
+  // Metadata
+  caloriesBurned    Int?
+  instructions      String[]
+  tips              String[]
+  
+  // AI and recommendations
+  aiRecommended     Boolean  @default(false)
+  popularityScore   Float    @default(0)
+  viewCount         Int      @default(0)
+  
+  // Status
+  isActive          Boolean  @default(true)
+  isPremium         Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  favorites         WorkoutFavorite[]
+  workoutSessions   WorkoutSession[]
+
+  @@map("workouts")
+}
+
+model WorkoutFavorite {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, workoutId])
+  @@map("workout_favorites")
+}
+
+model WorkoutSession {
+  id                String   @id @default(cuid())
+  userId            String
+  workoutId         String
+  workout           Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  
+  startedAt         DateTime
+  completedAt       DateTime?
+  duration          Int?     // Actual duration in minutes
+  caloriesBurned    Int?
+  notes             String?
+  
+  // Workout specific data
+  sets              Json?    // Array of sets with reps, weight, etc.
+  heartRateData     Json?    // Heart rate data if available
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("workout_sessions")
+}
+
+model ProgressEntry {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date              DateTime @db.Date
+  weight            Float?
+  bodyFatPercentage Float?
+  muscleMass        Float?
+  waterPercentage   Float?
+  
+  // Measurements
+  chest             Float?
+  waist             Float?
+  hips              Float?
+  thigh             Float?
+  arm               Float?
+  
+  // Daily metrics
+  caloriesConsumed  Int?
+  caloriesBurned    Int?
+  steps             Int?
+  waterIntake       Float?   // in liters
+  sleepHours        Float?
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@map("progress_entries")
+}
+
+model ProgressPhoto {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  imageUrl          String
+  photoType         PhotoType
+  date              DateTime @db.Date
+  notes             String?
+  
+  // AI analysis results
+  bodyComposition   Json?    // AI analysis of body composition
+  poseAnalysis      Json?    // Pose analysis for consistency
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("progress_photos")
+}
+
+model DailyTracking {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date              DateTime @db.Date
+  
+  // Food tracking
+  mealsLogged       Json?    // Array of logged meals
+  caloriesConsumed  Int      @default(0)
+  proteinConsumed   Float    @default(0)
+  carbsConsumed     Float    @default(0)
+  fatConsumed       Float    @default(0)
+  
+  // Activity tracking
+  workoutsCompleted Int      @default(0)
+  caloriesBurned    Int      @default(0)
+  steps             Int      @default(0)
+  activeMinutes     Int      @default(0)
+  
+  // Hydration
+  waterIntake       Float    @default(0) // in liters
+  
+  // Sleep
+  sleepHours        Float?
+  sleepQuality      Int?     // 1-10 scale
+  
+  // Mood and energy
+  mood              Int?     // 1-10 scale
+  energyLevel       Int?     // 1-10 scale
+  
+  // Goals progress
+  goalsAchieved     String[] // Array of goal IDs achieved today
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@map("daily_tracking")
+}
+
+model Coupon {
+  id                String   @id @default(cuid())
+  
+  code              String   @unique
+  description       String?
+  discountType      DiscountType
+  discountValue     Float    // Percentage or fixed amount
+  maxUses           Int?
+  usedCount         Int      @default(0)
+  validFrom         DateTime
+  validUntil        DateTime?
+  isActive          Boolean  @default(true)
+  
+  // Restrictions
+  minAmount         Float?   // Minimum order amount
+  applicablePlans   String[] // Which subscription plans this applies to
+  oneTimeUse        Boolean  @default(false) // Can only be used once per user
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id                String   @id @default(cuid())
+  couponId          String
+  coupon            Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId            String
+  subscriptionId    String
+  
+  usedAt            DateTime @default(now())
+  discountAmount    Float
+  
+  @@unique([couponId, userId])
+  @@map("coupon_usage")
+}
+
+// Enums
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHTLY_ACTIVE
+  MODERATELY_ACTIVE
+  VERY_ACTIVE
+  EXTRA_ACTIVE
+}
+
+enum Goal {
+  WEIGHT_LOSS
+  WEIGHT_GAIN
+  MUSCLE_GAIN
+  FAT_LOSS
+  ENDURANCE
+  STRENGTH
+  GENERAL_FITNESS
+  ATHLETIC_PERFORMANCE
+}
+
+enum DietType {
+  BALANCED
+  KETO
+  PALEO
+  VEGETARIAN
+  VEGAN
+  MEDITERRANEAN
+  LOW_CARB
+  HIGH_PROTEIN
+  INTERMITTENT_FASTING
+  CUSTOM
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+  PRE_WORKOUT
+  POST_WORKOUT
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  ABS
+  OBLIQUES
+  QUADS
+  HAMSTRINGS
+  GLUTES
+  CALVES
+  FULL_BODY
+  CARDIO
+  FLEXIBILITY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+enum PhotoType {
+  FRONT
+  SIDE
+  BACK
+  PROGRESS
+  MEAL
+  WORKOUT
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
