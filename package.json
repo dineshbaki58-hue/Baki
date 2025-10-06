@@ -1,0 +1,17 @@
+{
+  "name": "bakifitness",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "npm run -w @bakifitness/server build && npm run -w @bakifitness/admin build",
+    "dev": "npm run -w @bakifitness/server dev",
+    "typecheck": "npm run -w @bakifitness/server typecheck && npm run -w @bakifitness/admin typecheck && npm run -w @bakifitness/mobile typecheck",
+    "install-all": "npm install",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
