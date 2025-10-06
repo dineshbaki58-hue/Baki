@@ -1,0 +1,30 @@
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "workouts": [
+    {
+      "type": "Running",
+      "duration": 30,
+      "calories": 300,
+      "date": "2025-10-06T13:44:51.103702"
+    },
+    {
+      "type": "Weightlifting",
+      "duration": 45,
+      "calories": 200,
+      "date": "2025-10-06T13:44:51.103720"
+    },
+    {
+      "type": "Swimming",
+      "duration": 60,
+      "calories": 500,
+      "date": "2025-10-06T13:44:51.103725"
+    }
+  ],
+  "statistics": {
+    "total_workouts": 3,
+    "total_duration": 135,
+    "avg_duration": 45.0,
+    "total_calories": 1000
+  }
+}

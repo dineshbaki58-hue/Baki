@@ -1,0 +1,2 @@
+# Baki Fitness Application Dependencies
+# No external dependencies - uses only Python standard library
